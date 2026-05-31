@@ -45,18 +45,28 @@ CREATE TABLE autobuses (
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Historial y ultima posicion GPS de los buses
-CREATE TABLE posiciones_gps (
+-- Historial y ultima posicion GPS de los buses (Requerido por la API)
+CREATE TABLE IF NOT EXISTS gps_data (
     id BIGSERIAL PRIMARY KEY,
-    autobus_id INTEGER REFERENCES autobuses(id),
-    lat DOUBLE PRECISION NOT NULL,
-    lon DOUBLE PRECISION NOT NULL,
-    next_stop_id INTEGER REFERENCES paradas(id),
-    eta_seconds INTEGER,
+    bus_id VARCHAR(50) NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    route_id VARCHAR(50),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_gps_bus_time ON posiciones_gps (autobus_id, timestamp DESC);
+CREATE INDEX idx_gps_data_bus_time ON gps_data (bus_id, timestamp DESC);
+
+-- Rutas dinamicas aprendidas por el sistema (Requerido por RouteLearner)
+CREATE TABLE IF NOT EXISTS learned_routes (
+    id SERIAL PRIMARY KEY,
+    route_id VARCHAR(50) NOT NULL,
+    path JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_learned_routes_route_id ON learned_routes (route_id);
 
 -- Historico de trayectos para el modulo de predicciones de IA
 CREATE TABLE IF NOT EXISTS trip_history (
@@ -123,18 +133,11 @@ CREATE TABLE IF NOT EXISTS reportes (
     actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
--- INSERTAR DATOS REALES DE CEUTA PARA PROBAR EL SISTEMA
-
+-- Datos iniciales básicos requeridos para las FK
 INSERT INTO lineas (codigo, nombre, color) VALUES 
-('L1', 'P.CONSTITUCIÓN - CAMPUS UNIVERSITARIO - RECINTO - SAN AMARO - P.CONSTITUCION', '#3B82F6'),
-('L7', 'PLAZA DE LA CONSTITUCIÓN - FRONTERA DEL TARAJAL - HOSPITAL UNIVERSITARIO', '#F97316');
-
-INSERT INTO paradas (nombre, lat, lon) VALUES
-('Plaza de la constitución', 35.8889, -5.3213),
-('Hospital Universitario', 35.8871, -5.3152),
-('Campus Universitario', 35.8910, -5.3300),
-('Frontera del Tarajal', 35.8750, -5.3450);
+('L1', 'Línea 1', '#FF0000'),
+('L7', 'Línea 7', '#0000FF')
+ON CONFLICT (codigo) DO NOTHING;
 
 INSERT INTO autobuses (codigo, linea_id, matricula) VALUES 
 ('BUS_01', 1, '8899-KLS'),

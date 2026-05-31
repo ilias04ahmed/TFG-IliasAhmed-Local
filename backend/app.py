@@ -136,117 +136,32 @@ def connect_db():
         )
         conn.autocommit = True
         use_db = True
-        print("Conectado a PostgreSQL", flush=True)
-        
-        # Creación de tablas de la aplicación
+        print("Conectado a PostgreSQL exitosamente", flush=True)
+
+        cursor = conn.cursor()
+
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS gps_data (
-                id SERIAL PRIMARY KEY,
-                bus_id VARCHAR(50) NOT NULL,
-                latitude DOUBLE PRECISION NOT NULL,
-                longitude DOUBLE PRECISION NOT NULL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                route_id VARCHAR(50)
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'usuarios'
             );
         """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS trip_history (
-                id SERIAL PRIMARY KEY,
-                route_id VARCHAR(50) NOT NULL,
-                start_time TIMESTAMP NOT NULL,
-                end_time TIMESTAMP NOT NULL,
-                duration_seconds INT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS learned_routes (
-                route_id VARCHAR(50) PRIMARY KEY,
-                path JSONB NOT NULL,
-                last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS learned_stops (
-                id SERIAL PRIMARY KEY,
-                route_id VARCHAR(50) NOT NULL,
-                name VARCHAR(100),
-                lat DOUBLE PRECISION NOT NULL,
-                lon DOUBLE PRECISION NOT NULL,
-                CONSTRAINT unique_stop_per_route UNIQUE (route_id, lat, lon)
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS avisos (
-                id SERIAL PRIMARY KEY,
-                titulo VARCHAR(150) NOT NULL,
-                mensaje TEXT NOT NULL,
-                tipo VARCHAR(30) DEFAULT 'info',
-                linea_id VARCHAR(50),
-                activo BOOLEAN DEFAULT TRUE,
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        try:
-            cursor.execute("ALTER TABLE avisos ALTER COLUMN linea_id TYPE VARCHAR(50);")
-        except Exception:
-            pass
+        db_initialized = cursor.fetchone()[0]
+
+        if not db_initialized:
+            print("Base de datos vacía. Ejecutando init.sql...", flush=True)
             
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS rutas_favoritas (
-                id SERIAL PRIMARY KEY,
-                usuario_id INTEGER NOT NULL,
-                nombre VARCHAR(100) NOT NULL,
-                icono VARCHAR(10) DEFAULT 'location',
-                creada_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS segmentos_favoritos (
-                id SERIAL PRIMARY KEY,
-                ruta_favorita_id INTEGER NOT NULL,
-                orden INTEGER NOT NULL,
-                linea_id VARCHAR(10) NOT NULL,
-                parada_origen_id VARCHAR(10) NOT NULL,
-                parada_destino_id VARCHAR(10) NOT NULL,
-                parada_origen_nombre VARCHAR(100),
-                parada_destino_nombre VARCHAR(100)
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS horarios (
-                id SERIAL PRIMARY KEY,
-                linea_id INTEGER NOT NULL,
-                parada VARCHAR(150) NOT NULL,
-                sentido VARCHAR(10) NOT NULL DEFAULT 'ida',
-                dia_tipo VARCHAR(20) NOT NULL DEFAULT 'L-D',
-                hora TIME NOT NULL,
-                orden_parada INTEGER NOT NULL DEFAULT 0
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS reportes (
-                id SERIAL PRIMARY KEY,
-                usuario_id INTEGER NOT NULL,
-                mensaje TEXT NOT NULL,
-                respuesta_admin TEXT DEFAULT NULL,
-                estado VARCHAR(20) DEFAULT 'pendiente',
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS rutas_estaticas (
-                id SERIAL PRIMARY KEY,
-                osm_id BIGINT UNIQUE,
-                nombre VARCHAR(100),
-                ref VARCHAR(10),
-                color VARCHAR(7),
-                geometria JSONB
-            );
-        """)
-        print("Tablas verificadas correctamente", flush=True)
+            ruta_init = os.path.join(os.path.dirname(__file__), 'database', 'init.sql')
+            
+            with open(ruta_init, 'r', encoding='utf-8') as f:
+                sql_script = f.read()
+            
+            cursor.execute(sql_script)
+            print("Estructura y datos de Ceuta insertados con éxito.", flush=True)
+        else:
+            print("Base de datos ya inicializada. Omitiendo init.sql.", flush=True)
+
+        cursor.close()
 
         if RouteLearner:
             learner = RouteLearner(conn)
@@ -260,8 +175,14 @@ def connect_db():
                 "password": os.getenv("DATABASE_PASSWORD", "postgres")
             }
             predictor = TravelTimePredictor(db_config)
-            if not os.path.exists(predictor.model_path):
+            
+            # --- AQUÍ ESTÁ EL ARREGLO ---
+            # Usamos hasattr() para evitar el error de "object has no attribute"
+            if hasattr(predictor, 'model_path') and not os.path.exists(predictor.model_path):
                  print("Modelo ausente. Se entrenará al recibir datos.")
+            print("TravelTimePredictor OK", flush=True)
+            # ----------------------------
+                 
     except Exception as e:
         print(f"Error conexion BD (Fallback In-Memory): {e}")
         use_db = False
