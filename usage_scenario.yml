@@ -1,12 +1,13 @@
+version: 2
 name: "TFG Autobuses Ceuta"
 author: "Ilias Ahmed"
-description: "Medición de consumo energético y huella de carbono de la arquitectura backend"
+description: "Medicion de consumo energetico de la arquitectura backend"
 
-compose-file: docker-compose.yml
+composefile: docker-compose.yml
 
 flow:
-  - name: "Medición en estado de funcionamiento"
+  - name: "Medicion en estado de funcionamiento"
     container: "api"
     commands:
       - type: console
-        command: sleep 30
+        command: "sleep 30"

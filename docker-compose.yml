@@ -1,6 +1,7 @@
 services:
   web:
-    build: ./frontend
+    build:
+      context: ./frontend
     ports:
       - "80:80"
     depends_on:
@@ -8,7 +9,7 @@ services:
     volumes:
       - ./frontend/src:/var/www/html
     env_file:
-      - .env 
+      - .env.example
     environment:
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_NAME: ${DATABASE_NAME}
@@ -16,7 +17,8 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
 
   api:
-    build: ./backend
+    build:
+      context: ./backend
     ports:
       - "5000:5000"
     depends_on:
@@ -24,7 +26,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - .env
+      - .env.example
     environment:
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_NAME: ${DATABASE_NAME}
@@ -36,7 +38,7 @@ services:
     container_name: postgres_gps
     restart: always
     env_file:
-      - .env 
+      - .env.example
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
@@ -46,4 +48,4 @@ services:
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
-  pgdata:
+  pgdata: {}
