@@ -1,9 +1,8 @@
 name: "TFG Autobuses"
 author: "Ilias Ahmed"
-description: "Medicion de consumo energetico de la arquitectura backend"
-
+description: "Medicion de consumo energetico"
 compose-file: docker-compose.yml
-
+ignore-unsupported-compose: true
 flow:
   - name: "Medicion en estado de funcionamiento"
     container: "api"
