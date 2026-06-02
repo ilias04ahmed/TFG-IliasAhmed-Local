@@ -1,9 +1,8 @@
-version: 2
 name: "TFG Autobuses Ceuta"
 author: "Ilias Ahmed"
 description: "Medicion de consumo energetico de la arquitectura backend"
 
-composefile: docker-compose.yml
+compose-file: docker-compose.yml
 
 flow:
   - name: "Medicion en estado de funcionamiento"
