@@ -112,7 +112,7 @@ El proyecto se organiza estrictamente bajo el siguiente árbol de directorios mo
         ├── gps_simulator.py
         └── init_db.py
 
-### Componentes Principales
+## Componentes Principales
 
 **Raíz del proyecto:**
 - `docker-compose.yml`: Archivo que define y levanta los contenedores, redes y volúmenes necesarios para que toda la aplicación funcione de forma conjunta.
@@ -150,7 +150,6 @@ Antes de arrancar la aplicación, tienes que crear el archivo de configuración 
 ```bash
 cp .env.ejemplo .env
 ```
-*(Recuerda editar el archivo `.env` resultante para configurar contraseñas seguras y añadir las credenciales de Google OAuth).*
 
 ### 2. Arrancar los servicios
 Para construir las imágenes y levantar todos los contenedores, ejecuta el siguiente comando en la raíz del proyecto:
