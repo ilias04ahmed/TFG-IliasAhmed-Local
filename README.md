@@ -112,66 +112,56 @@ El proyecto se organiza estrictamente bajo el siguiente árbol de directorios mo
         ├── gps_simulator.py
         └── init_db.py
 
-Descripción Detallada de Componentes Críticos
+### Componentes Principales
 
-Raíz del Proyecto:
+**Raíz del proyecto:**
+- `docker-compose.yml`: Archivo que define y levanta los contenedores, redes y volúmenes necesarios para que toda la aplicación funcione de forma conjunta.
+- `usage_scenario.yml`: Configuración de escenarios y simulaciones de carga para realizar pruebas.
+- `.env.ejemplo`: Plantilla para las variables de entorno (contraseñas, tokens de API y configuración general).
 
-- docker-compose.yml: Archivo de orquestación encargado de configurar las redes virtuales internas, los volúmenes de almacenamiento y compilar de forma unificada las imágenes del ecosistema multi-servicio.
+**Backend (`backend/`):**
+- `osm_fetch.py` y `osm_routes.py`: Módulos que descargan y procesan los datos de la red vial directamente desde OpenStreetMap, evitando usar servicios de pago.
+- `start.sh`: Script de arranque del servidor backend.
+- `ml/`: Contiene los scripts de inteligencia artificial (`predictor.py` para calcular el tiempo estimado de llegada y `route_learner.py` para actualizar las rutas dinámicamente).
 
-- usage_scenario.yml: Archivo de configuración que parametriza escenarios de prueba y flujos de simulación de carga del sistema.
+**Base de datos (`database/`):**
+- `init.sql`: Script que crea las tablas, relaciones y las extensiones geoespaciales al inicializar la base de datos por primera vez.
+- `migration_google_auth.sql`: Cambios en la base de datos necesarios para implementar el inicio de sesión con Google.
 
-- .env.ejemplo: Plantilla centralizada de variables de entorno (credenciales criptográficas, tokens de APIs externas y configuraciones de red).
+**Frontend (`frontend/`):**
+- `src/config/database.php`: Archivo de conexión a la base de datos usando PDO.
+- `src/controllers/`: Controladores de la aplicación, separados por funcionalidad (usuarios, mapas, favoritos, panel de administración).
+- `src/public/`: Directorio público del servidor web. Contiene el `index.php` (punto de entrada) y utiliza `.htaccess` para las URLs amigables.
+- `src/views/`: Vistas de la interfaz, organizadas según el rol del usuario (ciudadano o administrador). Incluye partes comunes como el asistente en `layout/chatbot.php`.
 
-Servicio Backend (backend/):
+**IoT y Pruebas (`iot/` y `versiones/`):**
+- `iot/nodo_iot.py`: Script que se ejecuta en la Raspberry Pi de los autobuses. Lee las tramas del GPS por el puerto serie, procesa la ubicación y la envía al servidor. Si se pierde la conexión, la guarda temporalmente.
+- `versiones/gps_simulator.py`: Simulador que envía datos de ubicación falsos al backend para probar el sistema con varios autobuses a la vez, sin necesidad de salir a la calle a hacer pruebas.
 
-- osm_fetch.py / osm_routes.py: Módulos de integración geográfica orientados a conectar, descargar e interpretar redes viales complejas directamente desde la API Overpass de OpenStreetMap sin intermediarios comerciales.
+---
 
-- start.sh: Script bash de inicialización automatizada del servidor web adaptativo.
+## Despliegue del Sistema
 
-- ml/: Contiene el núcleo analítico predictivo (predictor.py para cálculos síncronos de ETA y route_learner.py para la actualización dinámica de recorridos).
+El proyecto está dockerizado para facilitar su instalación y ejecución en cualquier entorno sin problemas de dependencias.
 
-Persistencia (database/):
+### 1. Configurar las variables de entorno
+Antes de arrancar la aplicación, tienes que crear el archivo de configuración a partir de la plantilla:
 
-- init.sql: Script de DDL y DML encargado de levantar el esquema relacional, tipos específicos, restricciones espaciales y los triggers geográficos iniciales.
-
-- migration_google_auth.sql: Modificaciones estructurales para dotar a la base de datos de soporte a la federación de identidades mediante Google OAuth.
-
-Servicio Web (frontend/):
-
-- src/config/database.php: Abstracción de conexión a la persistencia mediante controladores PDO parametrizados.
-
-- src/controllers/: Controladores lógicos encapsulados por dominio que gestionan la seguridad (AuthController), la interacción espacial (MapController), las preferencias del ciudadano (FavoritosController) y las auditorías de administración (AdminController).
-
-- src/public/: Punto de entrada único del servidor web apoyado en un archivo .htaccess para forzar el enrutamiento amigable (Pretty URLs) hacia el front controller (index.php).
-
-- src/views/: Plantillas estructuradas de interfaz de usuario organizadas por privilegios, incluyendo módulos transversales en el directorio layout/ como un asistente automatizado (chatbot.php).
-
-Entorno IoT y Validación (iot/ y versiones/):
-
-- iot/nodo_iot.py: Componente de software destinado al hardware físico embarcado. Gestiona la conexión serie UART con el chipset satelital, realiza el análisis (parsing) de sentencias NMEA 0183 y controla el almacenamiento local intermedio en modo offline.
-
-- versiones/gps_simulator.py: Módulo de testing automatizado capaz de emular el comportamiento dinámico de múltiples autobuses de manera simultánea, inyectando telemetría artificial al backend para estresar el sistema y validar el rendimiento de los modelos sin requerir despliegues físicos en ruta.
-
-Requisitos y Despliegue del Sistema
-El entorno de ejecución completo se encuentra empaquetado bajo arquitecturas de contenedores aislados de grado industrial, garantizando la portabilidad absoluta del sistema con independencia del sistema operativo anfitrión.
-
-Paso 1: Configuración del Entorno Seguro
-Antes de proceder con el arranque, es imperativo instanciar el archivo de configuración global a partir de la plantilla provista en la raíz:
-
-Bash
+```bash
 cp .env.ejemplo .env
-(Nota: Es obligatorio editar el archivo .env resultante para definir contraseñas robustas de base de datos y los identificadores correspondientes del servicio de autenticación federada).
+```
+*(Recuerda editar el archivo `.env` resultante para configurar contraseñas seguras y añadir las credenciales de Google OAuth).*
 
-Paso 2: Compilación y Lanzamiento General
-Para compilar las imágenes personalizadas desde los archivos de definición Dockerfile, enlazar las redes internas expuestas y levantar todos los servicios integrados en modo persistente, ejecute en su terminal:
+### 2. Arrancar los servicios
+Para construir las imágenes y levantar todos los contenedores, ejecuta el siguiente comando en la raíz del proyecto:
 
-
+```bash
 docker-compose up --build
-Puntos de Acceso Operacionales
-Una vez que el orquestador valide el estado de salud de todos los contenedores (health checks), los servicios estarán disponibles en la máquina local bajo las siguientes interfaces de red:
+```
 
-Plataforma Web (Frontend Ciudadano/Administración): http://localhost (Puerto estándar HTTP 80)
+### 3. Acceso a la aplicación
+Una vez que los contenedores estén levantados y listos, podrás acceder a los servicios en las siguientes direcciones:
 
-Núcleo Operacional (API REST Backend): http://localhost:5000
-
-Motor de Persistencia Relacional: Puerto aislado interno de PostgreSQL integrado de forma privada dentro de la red del contenedor para mitigar vectores de ataque externos.
+- **Frontend (Web):** [http://localhost](http://localhost) (Puerto 80)
+- **Backend (API REST):** [http://localhost:5000](http://localhost:5000)
+- **Base de Datos:** PostgreSQL funciona internamente dentro de la red de Docker para mayor seguridad, por lo que no está expuesto directamente hacia el exterior por defecto.
