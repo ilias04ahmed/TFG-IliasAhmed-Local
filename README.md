@@ -111,6 +111,7 @@ El proyecto se organiza estrictamente bajo el siguiente árbol de directorios mo
         ├── check_db.py
         ├── gps_simulator.py
         └── init_db.py
+```
 
 ## Componentes Principales
 
