@@ -91,7 +91,6 @@
 </div>
 
 <script>
-    // Inicializar el mapa de Leaflet
     const map = L.map('map', {
         zoomControl: false 
     }).setView([35.8883, -5.3162], 14);
@@ -104,7 +103,6 @@
         maxZoom: 20
     }).addTo(map);
 
-    // Generar icono del bus con su color
     function createBusIcon(color) {
         return L.divIcon({
             className: 'custom-bus-icon',
@@ -128,13 +126,11 @@
         iconAnchor: [6, 6]
     });
 
-    // Estado de las capas y rutas
     let capasMapa = {};
     let infoRutas = {};
     let rutasActivas = new Set();
     let todasLasRutas = [];
 
-    // Función simple para sacar un color si la ruta no tiene uno asignado
     function obtenerColorRuta(ruta) {
         if (ruta.color) return ruta.color;
         
@@ -148,7 +144,6 @@
         return colores[sumaCaracteres % colores.length];
     }
 
-    // Cargar la lista de rutas en el sidebar
     function pintarSidebarRutas(rutas) {
         const contenedor = document.getElementById('routes-list-container');
         contenedor.innerHTML = '';
@@ -215,7 +210,6 @@
         pintarSidebarRutas(Object.values(infoRutas));
     }
 
-    // Controlar qué capas se ven y cuáles no
     function actualizarCapasMapa() {
         for (let idRuta in infoRutas) {
             const visible = rutasActivas.has(idRuta);
@@ -246,7 +240,6 @@
         }
     }
 
-    // Efectos visuales al pasar por encima de la lista lateral
     function resaltarLineaMapa(idRuta) {
         if (!rutasActivas.has(idRuta)) return;
         const capa = capasMapa['route_' + idRuta];
@@ -280,14 +273,12 @@
         }
     }
 
-    // Cargar trazas y paradas específicas de cada ruta
     async function obtenerRutasServidor() {
         try {
             const res = await fetch(API_BASE + '/api/routes');
             if (!res.ok) return;
             const datos = await res.json();
 
-            // Limpiar mapas antiguos si los hubiera
             for (let clave in capasMapa) {
                 if (clave.startsWith('route_') || clave.startsWith('stops_')) {
                     map.removeLayer(capasMapa[clave]);
@@ -305,7 +296,6 @@
                     todasLasRutas.push(ruta.id);
                     rutasActivas.add(ruta.id);
 
-                    // Pintar polilíneas del recorrido
                     if (ruta.path && ruta.path.length > 0) {
                         const tramos = Array.isArray(ruta.path[0]) ? ruta.path : [ruta.path];
                         const grupoLineas = L.featureGroup();
@@ -325,7 +315,6 @@
                         capasMapa['route_' + ruta.id] = grupoLineas;
                     }
 
-                    // Pintar paradas asociadas a la línea
                     if (ruta.stops) {
                         const marcadoresParadas = [];
                         ruta.stops.forEach(parada => {
@@ -364,7 +353,6 @@
         }
     }
 
-    // Cargar todas las paradas globales fijas
     async function obtenerTodasLasParadas() {
         try {
             const res = await fetch(API_BASE + '/api/stops');
@@ -389,7 +377,6 @@
         }
     }
 
-    // Animación normal paso a paso para el movimiento del autobús
     function moverAutobusSuave(marcador, destinoLat, destinoLon, tiempoTotal) {
         const posicionInicial = marcador.getLatLng();
         const inicioLat = posicionInicial.lat;
@@ -417,7 +404,6 @@
         requestAnimationFrame(actualizarPosicion);
     }
 
-    // Consultar ubicación de autobuses y refrescar posiciones
     async function refrescarPosicionBuses() {
         try {
             const res = await fetch(`${API_BASE}/api/buses?_nocache=${Date.now()}`);
@@ -427,10 +413,8 @@
             listaBuses.forEach(bus => {
                 const colorBus = infoRutas[bus.route_id] ? infoRutas[bus.route_id].color : '#6366F1';
                 const visible = rutasActivas.has(bus.route_id);
-                const claveBus = 'BUS_' + bus.id;
 
                 if (!capasMapa[claveBus]) {
-                    // Si el bus es nuevo se añade al mapa
                     const nuevoMarcador = L.marker([bus.lat, bus.lon], {
                         icon: createBusIcon(colorBus),
                         routeId: bus.route_id
@@ -444,7 +428,6 @@
                         </div>
                     `);
 
-                    // Evento al pulsar sobre el autobús para calcular ETA
                     nuevoMarcador.on('click', async () => {
                         document.getElementById('no-selection').classList.add('hidden');
                         document.getElementById('selected-bus-info').classList.remove('hidden');
@@ -475,7 +458,6 @@
 
                     capasMapa[claveBus] = nuevoMarcador;
                 } else {
-                    // Si ya existía el marcador, simplemente variamos su ubicación con animación
                     const marcadorExistente = capasMapa[claveBus];
                     moverAutobusSuave(marcadorExistente, bus.lat, bus.lon, 900);
 
@@ -487,7 +469,6 @@
                 }
             });
 
-            // Gestionar cartel flotante si no hay buses
             const aviso = document.getElementById('aviso-sin-buses');
             if (aviso) {
                 if (listaBuses.length === 0) {
@@ -501,13 +482,11 @@
         }
     }
 
-    // Listeners del DOM asignados de manera limpia
     document.getElementById('btn-toggle-todo').addEventListener('click', alternarTodasLasRutas);
     document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
         document.getElementById('sidebar').classList.toggle('-translate-x-full');
     });
 
-    // Carga inicial secuencial
     obtenerTodasLasParadas().then(() => {
         obtenerRutasServidor();
         setInterval(refrescarPosicionBuses, 1000);

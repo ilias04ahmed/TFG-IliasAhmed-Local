@@ -22,7 +22,6 @@ except ImportError as e:
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN DE SEGURIDAD Y CORS
 origenes_permitidos = [
     "http://localhost",
     "http://localhost:80",
@@ -89,7 +88,6 @@ def rate_limit(limite=30):
     return decorador
 
 
-# MANEJO DE CONEXIÓN THREAD-SAFE
 class ThreadSafeCursor:
     def __init__(self):
         self.local = threading.local()
@@ -117,7 +115,6 @@ class ThreadSafeCursor:
             self.local.cursor.close()
 
 
-# INITIALIZACIÓN Y BASE DE DATOS
 mem_buses = {}
 use_db = False
 conn = None
@@ -149,7 +146,6 @@ def connect_db():
         db_initialized = cursor.fetchone()[0]
 
         if not db_initialized:
-            print("Base de datos vacía. Ejecutando init.sql...", flush=True)
             
             ruta_init = os.path.join(os.path.dirname(__file__), 'database', 'init.sql')
             
@@ -176,8 +172,6 @@ def connect_db():
             }
             predictor = TravelTimePredictor(db_config)
             
-            # aquí tengo el arreglo
-            # Uso hasattr() para evitar el error de "object has no attribute"
             if hasattr(predictor, 'model_path') and not os.path.exists(predictor.model_path):
                  print("Modelo ausente. Se entrenará al recibir datos.")
             print("TravelTimePredictor OK", flush=True)
@@ -202,7 +196,6 @@ def load_routes():
 ROUTES_DATA = load_routes()
 
 
-# AUXILIARES
 def limpiar_nombre_ruta(nombre):
     if not nombre:
         return nombre
@@ -226,7 +219,6 @@ def limpiar_nombre_ruta(nombre):
     return nombre
 
 
-# ENDPOINTS DE LA API
 
 @app.route("/api/stops", methods=["GET"])
 def get_stops():
@@ -1063,8 +1055,6 @@ def delete_horario(horario_id):
         print(f"Error deleting horario: {e}", flush=True)
         return jsonify({"error": str(e)}), 500
 
-# FAVORITOS (Rutas Guardadas)
-
 @app.route("/api/favoritos/<int:user_id>", methods=["GET"])
 def get_favoritos(user_id):
     """Obtener todas las rutas favoritas de un usuario con sus segmentos"""
@@ -1130,7 +1120,6 @@ def create_favorito():
         return jsonify({"error": "Debes añadir al menos un segmento"}), 400
     
     try:
-        # Insertar ruta favorita
         cursor.execute(
             """INSERT INTO rutas_favoritas (usuario_id, nombre, icono)
                VALUES (%s, %s, %s) RETURNING id, creada_en""",
@@ -1139,7 +1128,6 @@ def create_favorito():
         row = cursor.fetchone()
         ruta_id = row[0]
         
-        # Insertar segmentos
         for seg in segmentos:
             cursor.execute(
                 """INSERT INTO segmentos_favoritos 
@@ -1187,7 +1175,6 @@ def delete_favorito(fav_id):
     if not use_db or not conn:
         return jsonify({"error": "DB no disponible"}), 503
     try:
-        # Eliminar segmentos primero
         cursor.execute("DELETE FROM segmentos_favoritos WHERE ruta_favorita_id=%s", (fav_id,))
         cursor.execute("DELETE FROM rutas_favoritas WHERE id=%s", (fav_id,))
         if cursor.rowcount == 0:
@@ -1203,7 +1190,6 @@ def get_favoritos_alertas(user_id):
     if not use_db or not conn:
         return jsonify({"alertas": [], "count": 0}), 200
     try:
-        # Avisos que afectan a líneas específicas de los segmentos del usuario
         cursor.execute("""
             SELECT DISTINCT a.id, a.titulo, a.mensaje, a.tipo, 
                    l.codigo AS linea_codigo, a.creado_en,
@@ -1218,7 +1204,6 @@ def get_favoritos_alertas(user_id):
         """, (user_id,))
         rows_specific = cursor.fetchall()
         
-        # Avisos globales (sin línea específica, afectan a todas)
         cursor.execute("""
             SELECT DISTINCT a.id, a.titulo, a.mensaje, a.tipo,
                    NULL AS linea_codigo, a.creado_en,
@@ -1232,7 +1217,6 @@ def get_favoritos_alertas(user_id):
         """, (user_id,))
         rows_global = cursor.fetchall()
         
-        # Combinar y formatear
         all_rows = rows_specific + rows_global
         alertas = []
         seen = set()
@@ -1253,7 +1237,6 @@ def get_favoritos_alertas(user_id):
                 "favorito_nombre": r[7]
             })
         
-        # Contar favoritos afectados (únicos)
         favoritos_afectados = len(set(a["favorito_id"] for a in alertas))
         
         return jsonify({
@@ -1382,8 +1365,6 @@ def planificar_ruta():
     }), 200
 
 
-# REPORTES (Soporte técnico / Incidencias)
-
 @app.route("/api/reportes", methods=["POST"])
 @rate_limit(limite=5)
 def create_reporte():
@@ -1400,13 +1381,11 @@ def create_reporte():
     if not usuario_id or not mensaje:
         return jsonify({"error": "usuario_id y mensaje son obligatorios"}), 400
     
-    # Validar que el usuario_id es un numero
     try:
         usuario_id = int(usuario_id)
     except (ValueError, TypeError):
         return jsonify({"error": "usuario_id no valido"}), 400
     
-    # Limitar longitud del mensaje
     if len(mensaje) > 2000:
         return jsonify({"error": "El mensaje es demasiado largo (max 2000)"}), 400
         
@@ -1428,7 +1407,6 @@ def get_user_reportes(user_id):
     if not use_db or not conn:
         return jsonify([]), 200
     try:
-        # Se ocultan los reportes mayores a 48 horas como pidió el usuario ('se elimine el chat al usuario')
         cursor.execute("""
             SELECT id, mensaje, respuesta_admin, estado, creado_en, actualizado_en
             FROM reportes
@@ -1476,8 +1454,6 @@ def get_admin_reportes():
             JOIN usuarios u ON r.usuario_id = u.id
             ORDER BY r.creado_en DESC
         """
-
-        # Sin paginacion: devolver todo
         if pagina is None:
             cursor.execute(base_query)
             rows = cursor.fetchall()
@@ -1547,9 +1523,7 @@ def update_reporte(reporte_id):
         print(f"Error updating reporte: {e}", flush=True)
         return jsonify({"error": str(e)}), 500
 
-# CHATBOT MULTILINGÜE
 
-# Respuestas predefinidas
 FAQ_RESPUESTAS = {
     'es': {
         'greeting': '¡Hola! Soy el asistente virtual de CeutaBus. ¿En qué te puedo ayudar? (Ej: "horarios", "precios", "contacto")',
@@ -1589,7 +1563,6 @@ FAQ_RESPUESTAS = {
     }
 }
 
-# Palabras clave asocidas a cada respuesta
 FAQ_KEYWORDS = {
     'es': {
         'precio': ['precio', 'cuesta', 'cuestan', 'billete', 'tarifa', 'bonobus', 'dinero', 'pagar'],
@@ -1622,7 +1595,7 @@ FAQ_KEYWORDS = {
 }
 
 @app.route("/api/chatbot", methods=["POST"])
-@rate_limit(limite=20)  # Evitar spam
+@rate_limit(limite=20)
 def handle_chatbot():
     """Endpoint del chatbot multilingüe"""
     data = request.json
@@ -1632,23 +1605,20 @@ def handle_chatbot():
     mensaje_usuario = data.get("message", "").lower()
     idioma = data.get("language", "es")
     
-    # Si piden un idioma que no tenemos, forzar espanol
     if idioma not in FAQ_RESPUESTAS:
         idioma = 'es'
         
-    # Caso 1: El frontend pide el saludo inicial (mandando mensaje vacio)
     if not mensaje_usuario:
         return jsonify({"response": FAQ_RESPUESTAS[idioma]['greeting']})
     
-    # Caso 2: Buscar si el mensaje contiene alguna palabra clave
     respuesta = FAQ_RESPUESTAS[idioma]['fallback']
     diccionario_palabras = FAQ_KEYWORDS[idioma]
     
-    encontrado = False # Bandera clasica de bucle
+    encontrado = False
     
     for intencion, palabras in diccionario_palabras.items():
         if encontrado:
-            break  # Salir si ya lo encontramos
+            break
             
         for palabra in palabras:
             if palabra in mensaje_usuario:

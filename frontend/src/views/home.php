@@ -90,7 +90,6 @@
 <script>
     const API_BASE = 'http://localhost:5000';
     
-    // Configuración visual de los tipos de aviso
     const TIPO_CONFIG = {
         info: { icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>', label: 'Información', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
         averia: { icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>', label: 'Avería', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' },
@@ -98,7 +97,6 @@
         cambio_ruta: { icon: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>', label: 'Cambio Ruta', bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' }
     };
 
-    // Carga de avisos desde la API
     function loadPublicAvisos() {
         fetch(`${API_BASE}/api/avisos`)
             .then(res => res.json())
@@ -114,12 +112,10 @@
                 avisos.forEach(a => {
                     const cfg = TIPO_CONFIG[a.tipo] || TIPO_CONFIG.info;
                     
-                    // Formatear la fecha de forma sencilla
                     const fecha = new Date(a.creado_en).toLocaleDateString('es-ES', {
                         day: '2-digit', month: 'short', year: 'numeric'
                     });
                     
-                    // Comprobar si hay una línea afectada
                     let lineaTag = '';
                     if (a.linea_codigo) {
                         lineaTag = `
@@ -131,7 +127,6 @@
                             </span>`;
                     }
 
-                    // Escapar caracteres básicos para evitar problemas con comillas o scripts
                     const tituloLimpio = escapeTexto(a.titulo);
                     const mensajeLimpio = escapeTexto(a.mensaje);
 
@@ -155,7 +150,6 @@
             });
     }
 
-    // Función auxiliar simple para evitar inyección básica en el HTML
     function escapeTexto(str) {
         if (!str) return '';
         return str.toString()
@@ -163,6 +157,5 @@
             .replace(/>/g, '&gt;');
     }
 
-    // Ejecutar al cargar el documento
     document.addEventListener('DOMContentLoaded', loadPublicAvisos);
 </script>

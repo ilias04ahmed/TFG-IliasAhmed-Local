@@ -11,10 +11,10 @@ class RouteLearner:
     def __init__(self, db_conn):
         self.db_conn = db_conn
         self.sesiones = {} 
-        self.tiempo_parada = 30 # Si el bus está quieto a partir de unos 30 segundos seguidos, lo consideramos una parada
-        self.radio_parada = 0.0002 # Margen pequeño para detectar que apenas se ha movido entre dos posiciones GPS
-        self.radio_bucle = 0.0005 # Distancia máxima al punto de inicio para asumir que ha completado una vuelta de la ruta
-        self.puntos_minimos = 10 # Evito guardar recorridos demasiado cortos o datos basura
+        self.tiempo_parada = 30
+        self.radio_parada = 0.0002
+        self.radio_bucle = 0.0005
+        self.puntos_minimos = 10
         self.ruta_modelo = os.path.join(os.path.dirname(__file__), 'eta_model.pkl')
 
     def process_point(self, route_id, lat, lon):

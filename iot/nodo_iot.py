@@ -1,15 +1,16 @@
 import serial
+# pyrefly: ignore [missing-import]
 import pynmea2
 import requests
 import time
 from collections import deque
 import os
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
-# Cargar las variables de entorno desde el archivo .env local
 load_dotenv()
 
-# Configuration (Ahora dinámicas y protegidas pero en el que uso realmente no uso las variables del .env)
+# Configuration
 URL_NGROK = os.getenv("URL_NGROK", "https://tu-subdominio-defecto.ngrok-free.dev/api/gps")
 VEHICULO_ID = os.getenv("VEHICULO_ID", "L1")
 RUTA_ID = os.getenv("RUTA_ID", "L1")
@@ -47,7 +48,7 @@ def procesar_buffer():
         if enviar_payload(siguiente_payload):
             buffer_positions.popleft()
             print(f"[BUFFER] Punto recuperado enviado. Quedan {len(buffer_positions)} en cola.")
-            time.sleep(0.5)  # Pausa  para no saturar el backend 
+            time.sleep(0.5)
         else:
             print("[BUFFER] El servidor sigue sin responder. Manteniendo datos en cola.")
             break
@@ -75,13 +76,11 @@ def main():
                             "route_id": RUTA_ID
                         }
 
-                        # Si ya hay elementos en el buffer, se añade al final para mantener la cronologia
                         if buffer_positions:
                             buffer_positions.append(payload)
                             print(f"[WARN] Red inestable. Guardando posicion en buffer (Total: {len(buffer_positions)})")
                             procesar_buffer()
                         else:
-                            # Si la cola esta vacia, se intenta el envio directo en tiempo real
                             if enviar_payload(payload):
                                 print(f"[INFO] Enviado en tiempo real - Lat: {lat:.6f}, Lon: {lon:.6f}")
                             else:

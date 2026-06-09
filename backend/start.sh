@@ -1,19 +1,16 @@
 #!/bin/sh
 
-# Esperar a que la base de datos esté lista para evitar fallos de conexión en cascada
 echo "Waiting for Postgres to be ready..."
 
 while ! python -c "
 import psycopg2, os, sys
 
-# Recuperamos las variables de entorno sin valores secretos por defecto
 db_host = os.getenv('DATABASE_HOST', 'db')
 db_port = os.getenv('DATABASE_PORT', '5432')
 db_name = os.getenv('DATABASE_NAME')
 db_user = os.getenv('DATABASE_USER')
 db_pass = os.getenv('DATABASE_PASSWORD')
 
-# Validación humana: Si falta alguna credencial crítica en el .env, detenemos el bucle
 if not all([db_name, db_user, db_pass]):
     print('[ERROR] Faltan variables críticas (NAME, USER o PASSWORD) en el entorno/.env', file=sys.stderr)
     sys.exit(1)
@@ -36,13 +33,11 @@ done
 
 echo "Postgres is up - fetching OSM stops and routes..."
 
-# Ejecución secuencial de scripts de sincronización OpenStreetMap
 if python osm_fetch.py && python osm_routes.py; then
     echo "OSM data processed successfully."
 else
     echo "[WARNING] OSM synchronization encountered errors. Proceeding to boot..."
 fi
 
-# Arrancar el servidor de Flask reemplazando el proceso del shell (exec)
 echo "Starting Flask Server..."
 exec python app.py
