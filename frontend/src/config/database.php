@@ -6,10 +6,10 @@ class Database {
 
     private function __construct() {
     
-        $host = getenv('DATABASE_HOST') ?: 'localhost';
-        $db   = getenv('DATABASE_NAME') ?: 'gpsdb';
-        $user = getenv('DATABASE_USER') ?: 'postgres';
-        $pass = getenv('DATABASE_PASSWORD') ?: '';
+        $host = getenv('DATABASE_HOST') ?: 'db';          // Cambiado 'localhost' por 'db'
+        $db   = getenv('DATABASE_NAME') ?: 'base_datos';  // El nombre que pusiste en tu .env.ejemplo
+        $user = getenv('DATABASE_USER') ?: 'usuario';     // El usuario de tu .env.ejemplo
+        $pass = getenv('DATABASE_PASSWORD') ?: 'contraseña'; // La contraseña genérica de Docker
 
         $dsn = "pgsql:host=$host;port=5432;dbname=$db;";
 

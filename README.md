@@ -1,51 +1,51 @@
-# TFG: Desarrollo de un sistema que proporciona información y geolocalización del transporte público de Ceuta en tiempo real
+# TFG: Development of a Real-Time Information and Geolocating System for Ceuta's Public Transport Network
+
+> **Read this in other languages:** [Español (Spanish)](README.es.md)
  
-**Ilias Ahmed Ahmed**  
-Grado en Ingeniería Informática  
-Trabajo de Fin de Grado  
+**Ilias Ahmed Ahmed** B.S. in Computer Engineering  
+Bachelor's Thesis (Trabajo de Fin de Grado)  
 
 ---
 
-## Descripción del proyecto
+## Project Description
 
-Este proyecto es el resultado de mi TFG: una aplicación web completa para la gestión y el seguimiento en tiempo real de una flota de autobuses urbanos. La idea surge de la necesidad de disponer de un sistema propio que no dependa de APIs de terceros de pago, y que además sea capaz de aprender del comportamiento real de las rutas.
+This repository contains the outcome of my Bachelor's Thesis: a full-stack web application designed for the real-time management and tracking of an urban bus fleet. The core motivation behind this project is the need for a self-hosted system that eliminates reliance on costly third-party APIs, while incorporating machine learning capabilities to learn from actual route behaviors.
 
-El objetivo principal es ofrecer tanto a administradores como a usuarios una herramienta donde consultar la ubicación de los autobuses, estimar tiempos de llegada, gestionar incidencias y guardar rutas favoritas, minimizando la latencia y garantizando funcionamiento incluso con cortes de conexión.
+The primary goal is to provide both administrators and end-users with an intuitive platform to track bus locations, estimate arrival times, handle system incidents, and save favorite routes—all while minimizing latency and ensuring high availability even during network disruptions.
 
 ---
 
-## Arquitectura del sistema
+## System Architecture
 
-El sistema se divide en tres bloques principales:
+The architecture is divided into three main building blocks, supplemented by an edge computing device:
 
 ### Backend (Python + Flask)
-Encargado de la lógica de negocio, API REST, ingesta de datos GPS y módulos de inteligencia artificial.
+Handles core business logic, provides a RESTful API, manages live GPS data ingestion, and hosts the integrated Machine Learning modules.
 
 ### Frontend (PHP)
-Interfaz web desarrollada en PHP con estructura tipo MVC ligera para facilitar el despliegue.
+A lightweight web interface built in PHP using a custom MVC pattern to streamline resource consumption and facilitate swift deployments.
 
-### Base de datos (PostgreSQL)
-Sistema de almacenamiento principal. Gestiona usuarios, rutas, paradas, vehículos, registros GPS, horarios e incidencias. Incluye soporte para consultas geoespaciales y almacenamiento de datos históricos para el módulo de aprendizaje automático.
+### Database (PostgreSQL)
+The central storage system. It manages users, routes, bus stops, vehicles, live GPS logs, schedules, and incident tracking. It includes native support for geospatial queries and archives historical tracking data utilized by the machine learning engine.
 
-### Nodo IoT (Python + GPS)
-A los tres blques principales se les añade un script ejecutado en una Raspberry Pi conectada a un módulo GPS. Lee tramas NMEA, procesa la posición y la envía al backend. Si no hay conexión, almacena los datos en un buffer local.
+### IoT Node (Python + GPS)
+In addition to the three core tiers, a dedicated script runs on an on-board Raspberry Pi connected to a hardware GPS module. It parses NMEA sentences, extracts positioning metrics, and transmits them to the backend. It features an offline local buffer to prevent data loss during connection dropouts.
 
 ---
 
-## Módulos de inteligencia artificial
+## Machine Learning Modules
 
 ### RouteLearner
-Sistema que detecta automáticamente rutas a partir de puntos GPS. Identifica cuando un autobús altera la ruta asignada durante un tiempo y si lo repite, reconstruye la ruta.
+An automated pipeline that extracts and identifies transit routes directly from raw GPS coordinate streams. If a bus consistently deviates from its scheduled path over a given threshold, the system automatically recalculates and updates the route network.
 
 ### TravelTimePredictor
-Modelo  que predice el tiempo estimado de llegada (ETA) usando histórico de trayectos. Se guarda con joblib para evitar reentrenamiento continuo.
+A predictive model designed to estimate the Estimated Time of Arrival (ETA) based on historical transit data. It uses serialized `joblib` models to avoid continuous, resource-heavy retraining pipelines.
 
 ---
 
+## Repository Structure
 
-## Estructura del Repositorio
-
-El proyecto se organiza estrictamente bajo el siguiente árbol de directorios modular:
+The project is strictly organized under the following modular directory tree:
 
 ```text
 └── TFG/
@@ -113,55 +113,53 @@ El proyecto se organiza estrictamente bajo el siguiente árbol de directorios mo
         └── init_db.py
 ```
 
-## Componentes Principales
+## Core Components Breakdown
 
-**Raíz del proyecto:**
-- `docker-compose.yml`: Archivo que define y levanta los contenedores, redes y volúmenes necesarios para que toda la aplicación funcione de forma conjunta.
-- `usage_scenario.yml`: Configuración de escenarios y simulaciones de carga para realizar pruebas.
-- `.env.ejemplo`: Plantilla para las variables de entorno (contraseñas, tokens de API y configuración general).
+### Root Directory
+- `docker-compose.yml`: Defines and orchestrates multi-container configurations, internal networks, and persistent storage volumes.
+- `usage_scenario.yml`: Sets up load testing scenarios and simulation profiles to evaluate system performance under stress.
+- `.env.ejemplo`: Environment variables template (used for securing database credentials, API secrets, and global configs).
 
-**Backend (`backend/`):**
-- `osm_fetch.py` y `osm_routes.py`: Módulos que descargan y procesan los datos de la red vial directamente desde OpenStreetMap, evitando usar servicios de pago.
-- `start.sh`: Script de arranque del servidor backend.
-- `ml/`: Contiene los scripts de inteligencia artificial (`predictor.py` para calcular el tiempo estimado de llegada y `route_learner.py` para actualizar las rutas dinámicamente).
+### Backend (`backend/`)
+- `osm_fetch.py` & `osm_routes.py`: Standalone modules that pull and parse geospatial street maps directly from the OpenStreetMap API, bypassing commercial paywalls.
+- `start.sh`: Shell script handling containerized environment preparation and server boot workflows.
+- `ml/`: Houses predictive services (`predictor.py` for live ETA tracking calculations and `route_learner.py` for runtime network graph modifications).
 
-**Base de datos (`database/`):**
-- `init.sql`: Script que crea las tablas, relaciones y las extensiones geoespaciales al inicializar la base de datos por primera vez.
-- `migration_google_auth.sql`: Cambios en la base de datos necesarios para implementar el inicio de sesión con Google.
+### Database (`database/`)
+- `init.sql`: Creates database schemas, constraints, indexes, and enables required geospatial extensions upon initialization.
+- `migration_google_auth.sql`: DB schema updates necessary to support OAuth2 Google Sign-In capabilities.
 
-**Frontend (`frontend/`):**
-- `src/config/database.php`: Archivo de conexión a la base de datos usando PDO.
-- `src/controllers/`: Controladores de la aplicación, separados por funcionalidad (usuarios, mapas, favoritos, panel de administración).
-- `src/public/`: Directorio público del servidor web. Contiene el `index.php` (punto de entrada) y utiliza `.htaccess` para las URLs amigables.
-- `src/views/`: Vistas de la interfaz, organizadas según el rol del usuario (ciudadano o administrador). Incluye partes comunes como el asistente en `layout/chatbot.php`.
+### Frontend (`frontend/`)
+- `src/config/database.php`: Direct PostgreSQL abstraction wrapper using secure PHP Data Objects (PDO).
+- `src/controllers/`: Application controllers isolated by domain responsibility (users, dynamic maps, administration dashboards).
+- `src/public/`: Web server entry point containing `index.php` and an optimized `.htaccess` routing engine for clean URLs.
+- `src/views/`: Interactive user interface files segmented by access roles (commuters vs. operators). Includes shared extensions like the support assistant found in `layout/chatbot.php`.
 
-**IoT y Pruebas (`iot/` y `versiones/`):**
-- `iot/nodo_iot.py`: Script que se ejecuta en la Raspberry Pi de los autobuses. Lee las tramas del GPS por el puerto serie, procesa la ubicación y la envía al servidor. Si se pierde la conexión, la guarda temporalmente.
-- `versiones/gps_simulator.py`: Simulador que envía datos de ubicación falsos al backend para probar el sistema con varios autobuses a la vez, sin necesidad de salir a la calle a hacer pruebas.
+### IoT & Simulation (`iot/` & `versiones/`)
+- `iot/nodo_iot.py`: Serial reader interface built for edge-mounted microcontrollers. It translates live GPS NMEA logs and buffers packets locally if data handshakes drop out.
+- `versiones/gps_simulator.py`: Multithreaded deployment test simulator designed to broadcast mock bus positioning telemetry back into the API for testing without requiring fieldwork.
 
 ---
 
-## Despliegue del Sistema
+## System Deployment
 
-El proyecto está dockerizado para facilitar su instalación y ejecución en cualquier entorno sin problemas de dependencias.
+The entire stack is Dockerized to ensure effortless execution across multiple operating systems without encountering local dependency conflicts.
 
-### 1. Configurar las variables de entorno
-Antes de arrancar la aplicación, tienes que crear el archivo de configuración a partir de la plantilla:
+### 1. Set Up Environment Variables
+Initialize the target configuration file by replicating the provided template setup:
 
 ```bash
 cp .env.ejemplo .env
-```
-
-### 2. Arrancar los servicios
-Para construir las imágenes y levantar todos los contenedores, ejecuta el siguiente comando en la raíz del proyecto:
+``` 
+### 2. Boot Application Containers
+Compile underlying container images and launch the infrastructure services by executing:
 
 ```bash
 docker-compose up --build
-```
+``` 
+### 3. Application Entry Points
+Once the orchestrator completes running the database entry points, map endpoints become reachable at the following addresses:
 
-### 3. Acceso a la aplicación
-Una vez que los contenedores estén levantados y listos, podrás acceder a los servicios en las siguientes direcciones:
-
-- **Frontend (Web):** [http://localhost](http://localhost) (Puerto 80)
-- **Backend (API REST):** [http://localhost:5000](http://localhost:5000)
-- **Base de Datos:** PostgreSQL funciona internamente dentro de la red de Docker para mayor seguridad, por lo que no está expuesto directamente hacia el exterior por defecto.
+- **Web Frontend:** [http://localhost](http://localhost) (Port 80)
+- **REST API Backend:** [http://localhost:5000](http://localhost:5000)
+- **Database Engine:** PostgreSQL operates entirely within the secure, private Docker bridge network and is not exposed to external ports by default.
